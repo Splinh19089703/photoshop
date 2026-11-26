@@ -95,8 +95,9 @@ const DEFAULT_CONFIG = {
 
 class AIRouter {
   constructor() {
-    this.config = this.loadConfig();
+    this.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
     this.rotationIndexes = {}; // provider -> last used key index
+    this.config = this.loadConfig();
   }
 
   loadConfig() {
@@ -105,12 +106,12 @@ class AIRouter {
         const raw = fs.readFileSync(SETTINGS_FILE, 'utf8');
         const parsed = JSON.parse(raw);
         // Deep merge with DEFAULT_CONFIG so new providers are always populated
-        const merged = { ...DEFAULT_CONFIG, ...parsed };
-        merged.providers = { ...DEFAULT_CONFIG.providers };
+        const merged = { ...JSON.parse(JSON.stringify(DEFAULT_CONFIG)), ...parsed };
+        merged.providers = { ...JSON.parse(JSON.stringify(DEFAULT_CONFIG.providers)) };
         if (parsed.providers) {
           for (const k of Object.keys(parsed.providers)) {
             merged.providers[k] = {
-              ...(DEFAULT_CONFIG.providers[k] || {}),
+              ...(DEFAULT_CONFIG.providers[k] ? JSON.parse(JSON.stringify(DEFAULT_CONFIG.providers[k])) : {}),
               ...parsed.providers[k]
             };
           }
@@ -120,11 +121,16 @@ class AIRouter {
     } catch (e) {
       console.warn('[AIRouter] Error loading settings, using defaults:', e.message);
     }
-    this.saveConfig(DEFAULT_CONFIG);
-    return DEFAULT_CONFIG;
+    const initial = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    this.config = initial;
+    this.saveConfig();
+    return initial;
   }
 
   saveConfig(newConfig) {
+    if (!this.config) {
+      this.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    }
     if (newConfig && newConfig !== this.config) {
       if (newConfig.activeProvider) this.config.activeProvider = newConfig.activeProvider;
       if (newConfig.fallbackOrder) this.config.fallbackOrder = newConfig.fallbackOrder;
