@@ -66,17 +66,20 @@ class PhotoCraftRPC {
     this.lineBuffer = '';
     this.isConnected = false;
     this.lastError = null;
+    this.cliUnavailable = false;
   }
 
   startHeadless() {
-    if (this.proc) return;
+    if (this.proc || this.cliUnavailable) return;
     const cliBin = resolveCliPath();
     if (!cliBin) {
       this.isConnected = false;
-      this.lastError = 'photocraft-cli binary not found (chạy bash deploy-vps.sh trên Linux VPS để tải engine tự động)';
+      this.cliUnavailable = true;
+      this.lastError = 'photocraft-cli binary not found';
       console.warn(`[PhotoCraft] Headless CLI chưa cài đặt (${this.lastError}). WebAssembly Editor (/editor/) và AI Router vẫn hoạt động bình thường.`);
       return;
     }
+    const startedAt = Date.now();
     console.log(`[PhotoCraft] Starting headless engine session (${cliBin})...`);
     try {
       this.proc = spawn(cliBin, [
@@ -90,14 +93,22 @@ class PhotoCraftRPC {
       console.error('[PhotoCraft] Failed to spawn CLI:', err.message);
       this.proc = null;
       this.isConnected = false;
+      this.cliUnavailable = true;
       this.lastError = err.message;
       return;
+    }
+
+    if (this.proc.stdin) {
+      this.proc.stdin.on('error', (err) => {
+        console.warn('[PhotoCraft CLI stdin error]:', err.message);
+      });
     }
 
     this.proc.on('error', (err) => {
       console.error('[PhotoCraft CLI process error]:', err.message);
       this.proc = null;
       this.isConnected = false;
+      this.cliUnavailable = true;
       this.lastError = err.message;
     });
 
@@ -121,13 +132,25 @@ class PhotoCraftRPC {
     });
 
     this.proc.stderr.on('data', (data) => {
-      console.log('[PhotoCraft CLI log]:', data.toString().trim());
+      const txt = data.toString().trim();
+      if (txt) {
+        this.lastError = txt;
+        console.log('[PhotoCraft CLI log]:', txt);
+      }
     });
 
     this.proc.on('close', (code) => {
       console.log(`[PhotoCraft CLI exited with code ${code}]`);
       this.proc = null;
       this.isConnected = false;
+      if (code !== 0 && Date.now() - startedAt < 5000) {
+        this.cliUnavailable = true;
+        console.warn('[PhotoCraft] Headless CLI exited on startup; keeping WebAssembly Editor (/editor/) & AI Router active.');
+      }
+      for (const [, cb] of this.callbacks.entries()) {
+        cb({ ok: false, error: this.lastError || `PhotoCraft CLI exited (${code})` });
+      }
+      this.callbacks.clear();
     });
 
     this.isConnected = true;
@@ -135,8 +158,12 @@ class PhotoCraftRPC {
   }
 
   async send(method, params = {}) {
-    if (!this.proc && config.controlMode === 'headless') {
+    if (!this.proc && config.controlMode === 'headless' && !this.cliUnavailable) {
       this.startHeadless();
+    }
+
+    if (!this.proc || !this.proc.stdin || this.proc.stdin.destroyed) {
+      throw new Error(this.lastError || 'PhotoCraft headless engine is not available');
     }
 
     const id = this.seq++;
@@ -159,12 +186,12 @@ class PhotoCraftRPC {
         }
       });
 
-      if (this.proc && this.proc.stdin) {
+      try {
         this.proc.stdin.write(JSON.stringify(req) + '\n');
-      } else {
+      } catch (err) {
         clearTimeout(timeout);
         this.callbacks.delete(id);
-        reject(new Error('PhotoCraft engine is not running'));
+        reject(err);
       }
     });
   }
@@ -783,10 +810,11 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+const HOST = process.env.HOST || '0.0.0.0';
+server.listen(PORT, HOST, () => {
   console.log(`=======================================================`);
-  console.log(`🚀 PhotoCraft AI Companion running at http://localhost:${PORT}`);
+  console.log(`🚀 PhotoCraft AI Companion running at http://${HOST}:${PORT}`);
   console.log(`📁 Automation workspace: ${WORKSPACE_DIR}`);
-  console.log(`🎨 PhotoCraft Engine: Connected & Ready`);
+  console.log(`🎨 PhotoCraft Engine: ${photocraft.isConnected ? 'Connected & Ready' : 'WebAssembly + AI Router Mode'}`);
   console.log(`=======================================================`);
 });
