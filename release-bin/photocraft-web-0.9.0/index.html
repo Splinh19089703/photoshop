@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
@@ -8,49 +8,154 @@
   <meta property="og:site_name" content="PTS SPL">
   <meta property="og:type" content="website">
   <meta name="twitter:title" content="PTS SPL">
-  
-<script type="module">
-import init, * as bindings from './photocraft-web-4cc0a6fe355463b6.js';
-const wasm = await init({ module_or_path: './photocraft-web-4cc0a6fe355463b6_bg.wasm' });
 
-
-window.wasmBindings = bindings;
-
-
-dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
-
-</script>
   <style>
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #262626; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e1e24; }
     #photocraft_canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     #photocraft_loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 0 16px; text-align: center; color: #b8b8b8; font: 14px system-ui, sans-serif; pointer-events: none; }
-    #photocraft_loading p { margin: 0 0 8px; max-width: 420px; line-height: 1.5; }
-    #photocraft_loading a { color: #e0e0e0; pointer-events: auto; }
-    /* The app removes this element once it runs. If the WebAssembly never downloads or doesn't match
-       this page, no Rust runs to say so, so the page itself shows what to do after a while. */
+      padding: 0 16px; text-align: center; color: #b8b8b8; font: 14px system-ui, -apple-system, sans-serif; pointer-events: none; z-index: 10; }
+    #photocraft_loading p { margin: 0 0 8px; max-width: 460px; line-height: 1.5; }
+    #photocraft_loading a, #photocraft_loading button { pointer-events: auto; }
     #photocraft_stalled { color: #8c8c8c; visibility: hidden; animation: photocraft-stalled 0s 20s forwards; }
     @keyframes photocraft-stalled { to { visibility: visible; } }
+    .pts-gpu-card { pointer-events: auto; max-width: 520px; background: #27272f; border: 1px solid #3f3f4e; border-radius: 14px;
+      padding: 24px; text-align: left; color: #e4e4e7; box-shadow: 0 20px 50px rgba(0,0,0,0.55); }
+    .pts-gpu-card h3 { margin: 0 0 10px; font-size: 18px; color: #fff; }
+    .pts-gpu-card p { max-width: none !important; color: #a1a1aa; font-size: 13.5px; margin: 0 0 12px !important; }
+    .pts-gpu-steps { background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 14px;
+      margin-bottom: 14px; font-size: 13px; line-height: 1.6; color: #d4d4d8; }
+    .pts-gpu-steps code { background: rgba(59,130,246,0.18); color: #93c5fd; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+    .pts-gpu-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pts-btn { cursor: pointer; border: 1px solid #4b5563; background: #374151; color: #fff; border-radius: 8px; padding: 8px 13px;
+      font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .pts-btn:hover { filter: brightness(1.1); }
+    .pts-btn-primary { background: #2563eb; border-color: #3b82f6; }
+    .pts-btn-accent { background: #7c3aed; border-color: #8b5cf6; }
   </style>
-<link rel="modulepreload" href="./photocraft-web-4cc0a6fe355463b6.js" crossorigin="anonymous" integrity="sha384-1AvYzmLQMJVZx7IFXSVB5gHVUpQ3b7M7Mqy4bS3S/FC2f0P6Q0WwdWpEq7Ke5bNc"><link rel="preload" href="./photocraft-web-4cc0a6fe355463b6_bg.wasm" crossorigin="anonymous" integrity="sha384-MO5qQh0S10JhVk+SuJ2AyZD//aQXuw/7v0feFF/mb6o0PRex2+hV62cBC+xIcr6M" as="fetch" type="application/wasm"></head>
+  <link rel="modulepreload" href="./photocraft-web-4cc0a6fe355463b6.js" crossorigin="anonymous" integrity="sha384-1AvYzmLQMJVZx7IFXSVB5gHVUpQ3b7M7Mqy4bS3S/FC2f0P6Q0WwdWpEq7Ke5bNc">
+</head>
 <body>
   <canvas id="photocraft_canvas"></canvas>
   <div id="photocraft_loading">
-    <p>Loading PTS SPL&hellip;</p>
-    <p id="photocraft_stalled">This is taking longer than usual. If PTS SPL doesn't start, its files may have failed to
-      download or come from a different version of this page. <a href="">Reload</a> to try again; the browser
-      console lists what failed.</p>
+    <p>Đang khởi động PTS SPL&hellip;</p>
+    <p id="photocraft_stalled">Đang tải bộ công cụ xử lý ảnh. Nếu trang chưa mở sau vài giây, hãy bấm <a href="" style="color:#60a5fa;">Tải lại trang</a>.</p>
   </div>
-  <script>
-    (function() {
-      // Keep browser tab title branded as PTS SPL even if Wasm updates document.title
-      const titleEl = document.querySelector('title');
-      if (titleEl) {
-        new MutationObserver(() => {
-          if (document.title.includes('PhotoCraft')) {
-            document.title = document.title.replace(/PhotoCraft/g, 'PTS SPL');
+
+  <script type="module">
+    // 1. Relax WebGL2 context attributes so software/integrated GPUs never fail on strict flags
+    const origGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function(type, attrs) {
+      if (type === 'webgl2') {
+        const relaxed = Object.assign({}, attrs || {}, {
+          failIfMajorPerformanceCaveat: false,
+          powerPreference: 'default'
+        });
+        return origGetContext.call(this, 'webgl2', relaxed)
+          || origGetContext.call(this, 'webgl2')
+          || origGetContext.call(this, 'experimental-webgl2');
+      }
+      return origGetContext.call(this, type, attrs);
+    };
+
+    function showGpuHelp(detailMsg) {
+      const loadingEl = document.getElementById('photocraft_loading');
+      if (!loadingEl) return;
+      const isEdge = navigator.userAgent.includes('Edg/');
+      const settingsUrl = isEdge ? 'edge://settings/system' : 'chrome://settings/system';
+      loadingEl.innerHTML = `
+        <div class="pts-gpu-card">
+          <h3>⚠️ Trình duyệt đang tắt Tăng tốc đồ họa (WebGL2 / WebGPU)</h3>
+          <p>PTS SPL Editor cần WebGL2 hoặc WebGPU để vẽ nhiều Layer tốc độ cao trên trình duyệt của bạn.</p>
+          <div class="pts-gpu-steps">
+            <b>Cách bật trong 5 giây (Chrome / Edge / Cốc Cốc):</b><br>
+            1. Bấm nút bên dưới để chép <code>${settingsUrl}</code> rồi dán lên thanh địa chỉ.<br>
+            2. Bật mục <b>"Sử dụng chế độ tăng tốc đồ họa khi khả dụng"</b> <i>(Use graphics acceleration when available)</i>.<br>
+            3. Bấm <b>Chạy lại (Relaunch)</b> rồi tải lại trang này.<br>
+            <span style="color:#a1a1aa;font-size:12px;">💡 Nếu bạn đang bấm link trực tiếp bên trong cửa sổ chat Zalo, hãy mở link bằng trình duyệt Chrome hoặc Edge bên ngoài.</span>
+          </div>
+          <div class="pts-gpu-btns">
+            <button type="button" class="pts-btn pts-btn-primary" id="btnCopyChromeGpu">📋 Copy ${settingsUrl}</button>
+            <button type="button" class="pts-btn" id="btnCopyEditorUrl">🔗 Copy link mở bằng Chrome</button>
+            <a href="/?from=editor" class="pts-btn pts-btn-accent">✨ Mở PTS SPL AI Studio (Không cần GPU)</a>
+          </div>
+          ${detailMsg ? `<div style="margin-top:10px;font-size:11px;color:#71717a;word-break:break-word;">Chi tiết: ${detailMsg}</div>` : ''}
+        </div>
+      `;
+      document.getElementById('btnCopyChromeGpu')?.addEventListener('click', async (e) => {
+        try {
+          await navigator.clipboard.writeText(settingsUrl);
+          e.currentTarget.textContent = '✅ Đã copy! Dán lên thanh địa chỉ nhé';
+        } catch (_) {
+          prompt('Copy đường dẫn này dán lên thanh địa chỉ trình duyệt:', settingsUrl);
+        }
+      });
+      document.getElementById('btnCopyEditorUrl')?.addEventListener('click', async (e) => {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        try {
+          await navigator.clipboard.writeText(cleanUrl);
+          e.currentTarget.textContent = '✅ Đã copy link!';
+        } catch (_) {
+          prompt('Copy đường dẫn này mở trong Chrome/Edge:', cleanUrl);
+        }
+      });
+    }
+
+    // 2. Pre-check WebGPU & WebGL2 on an offscreen canvas BEFORE Wasm touches #photocraft_canvas
+    //    (Prevents #photocraft_canvas from getting locked to 'webgpu' mode when WebGPU adapter is unavailable!)
+    async function detectGraphicsSupport() {
+      let webgpuOk = false;
+      if (navigator.gpu && typeof navigator.gpu.requestAdapter === 'function') {
+        try {
+          const adapter = await Promise.race([
+            navigator.gpu.requestAdapter(),
+            new Promise((r) => setTimeout(() => r(null), 2500))
+          ]);
+          if (adapter) {
+            const device = await adapter.requestDevice().catch(() => null);
+            if (device) {
+              webgpuOk = true;
+              try { device.destroy(); } catch (_) {}
+            }
           }
-        }).observe(titleEl, { childList: true, characterData: true, subtree: true });
+        } catch (_) {}
+      }
+
+      let webgl2Ok = false;
+      try {
+        const probe = document.createElement('canvas');
+        const gl2 = probe.getContext('webgl2');
+        if (gl2) {
+          webgl2Ok = true;
+          const lose = gl2.getExtension('WEBGL_lose_context');
+          if (lose) lose.loseContext();
+        }
+      } catch (_) {}
+
+      return { webgpuOk, webgl2Ok };
+    }
+
+    const { webgpuOk, webgl2Ok } = await detectGraphicsSupport();
+
+    if (!webgpuOk && !webgl2Ok) {
+      showGpuHelp('Trình duyệt trả về null cho cả WebGPU và WebGL2.');
+    } else {
+      // If WebGPU adapter/device failed but WebGL2 works, force ?webgl=1 BEFORE init()
+      // so #photocraft_canvas is never claimed by getContext('webgpu') ("canvas already in use").
+      const params = new URLSearchParams(window.location.search);
+      if (!webgpuOk && webgl2Ok && !params.has('webgl')) {
+        params.set('webgl', '1');
+        history.replaceState(null, '', window.location.pathname + '?' + params.toString() + window.location.hash);
+      }
+
+      // Watch #photocraft_loading in case Wasm still reports a startup error
+      const loadingEl = document.getElementById('photocraft_loading');
+      if (loadingEl) {
+        new MutationObserver(() => {
+          const txt = loadingEl.textContent || '';
+          if (txt.includes('failed to start:')) {
+            showGpuHelp(txt.replace(/PhotoCraft/g, 'PTS SPL'));
+          }
+        }).observe(loadingEl, { childList: true, subtree: true });
       }
 
       const t = Date.now();
@@ -62,6 +167,25 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
       const script = document.createElement('script');
       script.src = 'ai-taskbar.js?t=' + t;
       document.body.appendChild(script);
+
+      const mod = await import('./photocraft-web-4cc0a6fe355463b6.js');
+      const wasm = await mod.default({ module_or_path: './photocraft-web-4cc0a6fe355463b6_bg.wasm' });
+      window.wasmBindings = mod;
+      dispatchEvent(new CustomEvent('TrunkApplicationStarted', { detail: { wasm } }));
+    }
+  </script>
+
+  <script>
+    (function() {
+      // Keep browser tab title branded as PTS SPL even if Wasm updates document.title
+      const titleEl = document.querySelector('title');
+      if (titleEl) {
+        new MutationObserver(() => {
+          if (document.title.includes('PhotoCraft')) {
+            document.title = document.title.replace(/PhotoCraft/g, 'PTS SPL');
+          }
+        }).observe(titleEl, { childList: true, characterData: true, subtree: true });
+      }
     })();
   </script>
 </body>
