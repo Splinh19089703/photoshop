@@ -1,0 +1,7 @@
+# Fallback Apache rules when FastPanel serves /var/www/pts_spl/data/www/pts.splworks.com statically
+AddType application/wasm .wasm
+AddType text/javascript .js
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/wasm text/javascript application/javascript text/html text/css
+</IfModule>

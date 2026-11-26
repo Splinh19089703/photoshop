@@ -11,3 +11,14 @@ target/
 /craft-fonts
 *.log
 __pycache__/
+
+# Local secrets, runtime state, and platform-specific heavy binaries
+.env
+ptscraft-ai/config/ai-settings.json
+ptscraft-ai/workspace/*
+!ptscraft-ai/workspace/.gitkeep
+release-bin/*.zip
+release-bin/*.tar.gz
+release-bin/photocraft-*-windows-*/
+release-bin/linux-*/
+

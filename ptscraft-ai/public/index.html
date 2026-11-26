@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhotoCraft AI Studio - AI Generative Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-badge">
+          <span class="logo-icon">✨</span>
+          <span class="logo-text">PhotoCraft <span class="ai-tag">AI</span></span>
+        </div>
+        <div class="doc-badge" id="docBadge">
+          <span class="status-dot connected" id="statusDot"></span>
+          <span id="docStatusText">Đang kết nối PhotoCraft Engine...</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <button class="btn btn-secondary btn-sm" id="btnRefresh" title="Làm mới canvas">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+          Làm Mới
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btnNewDoc">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+          Tạo Mới
+        </button>
+        <button class="btn btn-primary btn-sm" id="btnLaunchEditor" title="Mở toàn bộ giao diện Photoshop trên trình duyệt">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+          Mở PhotoCraft Web Editor
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btnLaunchDesktop" title="Mở file photocraft.exe trên Windows">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Desktop (.exe)
+        </button>
+        <button class="btn btn-accent btn-sm" id="btnExport">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Xuất PSD / PNG
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace-container">
+      <!-- Left Panel: Live Canvas & Viewport -->
+      <section class="canvas-viewport">
+        <div class="viewport-header">
+          <div class="viewport-title" id="canvasTitle">Artwork Preview (1024 × 768)</div>
+          <div class="canvas-controls">
+            <button class="tool-btn active" id="toolSelect" title="Khoanh vùng Generative Fill">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 4"/></svg>
+              <span>Vùng Chọn</span>
+            </button>
+            <button class="tool-btn" id="toolZoomIn" title="Phóng to">+</button>
+            <button class="tool-btn" id="toolZoomOut" title="Thu nhỏ">-</button>
+            <button class="tool-btn" id="toolResetZoom" title="Vừa màn hình">Fit</button>
+          </div>
+        </div>
+
+        <div class="canvas-stage" id="canvasStage">
+          <div class="canvas-wrapper" id="canvasWrapper">
+            <img id="previewImg" alt="PhotoCraft Canvas Preview" src="" />
+            <!-- Selection Box Overlay for Generative Fill -->
+            <div id="selectionBox" class="selection-box hidden">
+              <div class="selection-tag" id="selectionTag">Vùng Chọn AI</div>
+            </div>
+          </div>
+          <div id="canvasLoader" class="canvas-loader hidden">
+            <div class="spinner"></div>
+            <p id="canvasLoaderText">Đang xử lý AI...</p>
+          </div>
+        </div>
+
+        <div class="viewport-footer">
+          <span id="selectionInfo">💡 Kéo chuột trên canvas để khoanh vùng điền AI (Generative Fill).</span>
+          <div class="zoom-level" id="zoomLevel">100%</div>
+        </div>
+      </section>
+
+      <!-- Right Panel: AI Control Studio -->
+      <aside class="ai-studio-panel">
+        <!-- AI Navigation Tabs -->
+        <nav class="ai-tabs">
+          <button class="tab-item active" data-tab="tab-genfill">
+            <span class="tab-icon">🪄</span>
+            <span>Generative Fill</span>
+          </button>
+          <button class="tab-item" data-tab="tab-removebg">
+            <span class="tab-icon">✂️</span>
+            <span>Tách Nền</span>
+          </button>
+          <button class="tab-item" data-tab="tab-expand">
+            <span class="tab-icon">🌅</span>
+            <span>Mở Rộng</span>
+          </button>
+          <button class="tab-item" data-tab="tab-text2img">
+            <span class="tab-icon">🎨</span>
+            <span>Sinh Ảnh</span>
+          </button>
+          <button class="tab-item" data-tab="tab-copilot">
+            <span class="tab-icon">🤖</span>
+            <span>AI Copilot</span>
+          </button>
+          <button class="tab-item" data-tab="tab-settings">
+            <span class="tab-icon">⚙️</span>
+            <span>Cài Đặt</span>
+          </button>
+        </nav>
+
+        <!-- Tab 1: Generative Fill (Inpainting) -->
+        <div class="tab-content active" id="tab-genfill">
+          <div class="tab-header">
+            <h3>Generative Fill (Điền Khuyết AI)</h3>
+            <p class="tab-desc">Khoanh vùng trên ảnh và nhập mô tả những gì bạn muốn vẽ thêm hoặc thay thế.</p>
+          </div>
+
+          <div class="form-group">
+            <label>Tọa độ & Kích thước vùng chọn:</label>
+            <div class="coord-grid">
+              <div class="coord-item">
+                <span>X:</span> <input type="number" id="fillX" value="100" />
+              </div>
+              <div class="coord-item">
+                <span>Y:</span> <input type="number" id="fillY" value="100" />
+              </div>
+              <div class="coord-item">
+                <span>Rộng:</span> <input type="number" id="fillW" value="400" />
+              </div>
+              <div class="coord-item">
+                <span>Cao:</span> <input type="number" id="fillH" value="400" />
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-xs mt-1" id="btnSelectAll">Chọn Toàn Bộ Khung</button>
+          </div>
+
+          <div class="form-group">
+            <label for="fillPrompt">Mô tả chi tiết (Prompt):</label>
+            <textarea id="fillPrompt" rows="3" placeholder="Ví dụ: Một chiếc du thuyền sang trọng màu trắng đang rẽ sóng trên biển xanh..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Gợi ý nhanh (Presets):</label>
+            <div class="preset-chips">
+              <button class="chip" data-prompt="A cute golden retriever puppy sitting gracefully, natural lighting">🐶 Chú chó nhỏ</button>
+              <button class="chip" data-prompt="Luxury modern sports car, sleek reflections, studio lighting">🏎️ Siêu xe</button>
+              <button class="chip" data-prompt="Beautiful ceramic vase with fresh blooming roses">🌸 Bình hoa hồng</button>
+              <button class="chip" data-prompt="Fluffy cinematic clouds with golden sunset rays">☁️ Mây hoàng hôn</button>
+            </div>
+          </div>
+
+          <button class="btn btn-gradient w-100" id="btnExecuteFill">
+            <span>🪄 Thực Hiện Generative Fill</span>
+          </button>
+        </div>
+
+        <!-- Tab 2: Remove Background -->
+        <div class="tab-content" id="tab-removebg">
+          <div class="tab-header">
+            <h3>AI Tách Nền & Chủ Thể (Subject Cutout)</h3>
+            <p class="tab-desc">Tự động nhận diện người, đồ vật hoặc thú cưng và tách nền trong suốt chỉ với 1 cú click.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">✨</div>
+            <div class="feature-info">
+              <h4>Nhận diện chủ thể thông minh</h4>
+              <p>Tạo layer mới với kênh Alpha trong suốt, giữ trọn vẹn chi tiết tóc và viền phức tạp.</p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkNewLayerBg" checked />
+              <span>Chèn kết quả tách nền vào Layer mới (giữ nguyên ảnh gốc)</span>
+            </label>
+          </div>
+
+          <button class="btn btn-gradient w-100 mt-2" id="btnExecuteRemoveBg">
+            <span>✂️ Tách Nền Ngay</span>
+          </button>
+        </div>
+
+        <!-- Tab 3: Generative Expand -->
+        <div class="tab-content" id="tab-expand">
+          <div class="tab-header">
+            <h3>Generative Expand (Mở Rộng Viền AI)</h3>
+            <p class="tab-desc">Mở rộng kích thước khung canvas và cho AI tự vẽ thêm phong cảnh nối liền tự nhiên.</p>
+          </div>
+
+          <div class="form-group">
+            <label>Độ mở rộng mỗi cạnh:</label>
+            <div class="radio-pills">
+              <label><input type="radio" name="expandSize" value="60" checked /> 60px</label>
+              <label><input type="radio" name="expandSize" value="120" /> 120px</label>
+              <label><input type="radio" name="expandSize" value="200" /> 200px</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Hướng mở rộng:</label>
+            <select id="expandDirection" class="form-select">
+              <option value="all">Mở rộng 4 phía (All sides)</option>
+              <option value="horizontal">Mở rộng chiều ngang (Trái & Phải)</option>
+              <option value="vertical">Mở rộng chiều dọc (Trên & Dưới)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="expandPrompt">Chủ đề mở rộng:</label>
+            <input type="text" id="expandPrompt" value="seamless continuation of background scenery, photorealistic, 8k" />
+          </div>
+
+          <button class="btn btn-gradient w-100" id="btnExecuteExpand">
+            <span>🌅 Mở Rộng Canvas Bằng AI</span>
+          </button>
+        </div>
+
+        <!-- Tab 4: Text-to-Image -->
+        <div class="tab-content" id="tab-text2img">
+          <div class="tab-header">
+            <h3>Sinh Ảnh Từ Văn Bản (Text-to-Image)</h3>
+            <p class="tab-desc">Tạo ảnh độ phân giải cao từ văn bản mô tả và chèn trực tiếp vào bản thiết kế PhotoCraft.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="t2iPrompt">Mô tả hình ảnh (Prompt):</label>
+            <textarea id="t2iPrompt" rows="3" placeholder="Ví dụ: A majestic cyberpunk samurai standing in neon rain, cinematic lighting, 8k..."></textarea>
+            <div class="preset-chips mt-1">
+              <button class="chip chip-t2i" data-prompt="A majestic cyberpunk samurai standing in neon rain, cinematic lighting, ultra-detailed 8k">⛩️ Cyberpunk Samurai</button>
+              <button class="chip chip-t2i" data-prompt="A cute golden retriever puppy sitting gracefully on a velvet couch, studio lighting">🐶 Chú chó nhỏ</button>
+              <button class="chip chip-t2i" data-prompt="Breathtaking tropical beach at sunset with glowing pink and turquoise waves">🏖️ Bãi biển hoàng hôn</button>
+              <button class="chip chip-t2i" data-prompt="Futuristic hypercar speeding through neon-lit metropolis at night, reflections">🏎️ Siêu xe</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Phong cách nghệ thuật (Art Style):</label>
+            <div class="style-grid">
+              <button class="style-card active" data-style="photorealistic">
+                <span>📸</span> Chân thực
+              </button>
+              <button class="style-card" data-style="cinematic">
+                <span>🎬</span> Điện ảnh
+              </button>
+              <button class="style-card" data-style="anime">
+                <span>🎨</span> Anime
+              </button>
+              <button class="style-card" data-style="3d-render">
+                <span>🧊</span> 3D Render
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Kích thước ảnh:</label>
+            <div class="radio-pills">
+              <label><input type="radio" name="t2iRatio" value="768x768" checked /> 1:1 (768×768)</label>
+              <label><input type="radio" name="t2iRatio" value="1024x576" /> 16:9 (1024×576)</label>
+              <label><input type="radio" name="t2iRatio" value="576x1024" /> 9:16 (576×1024)</label>
+            </div>
+          </div>
+
+          <button class="btn btn-gradient w-100" id="btnExecuteText2Img">
+            <span>🎨 Tạo Ảnh & Đưa Vào PhotoCraft</span>
+          </button>
+        </div>
+
+        <!-- Tab 5: AI Copilot -->
+        <div class="tab-content" id="tab-copilot">
+          <div class="tab-header">
+            <h3>Trợ Lý Chỉnh Sửa AI (Photoshop Copilot)</h3>
+            <p class="tab-desc">Gõ yêu cầu bằng tiếng Việt tự nhiên, AI sẽ dịch thành lệnh PhotoCraft (Curves, Levels, Filters...) và tự áp dụng.</p>
+          </div>
+
+          <div class="form-group">
+            <label>Lệnh chỉnh nhanh (Quick Presets):</label>
+            <div class="copilot-presets">
+              <button class="btn-preset" data-cmd="Tăng tương phản và chiều sâu màu">⚡ Tăng Tương Phản (Curves)</button>
+              <button class="btn-preset" data-cmd="Tăng độ rực rỡ và tươi tắn">🌈 Tăng Rực Màu (Vibrance)</button>
+              <button class="btn-preset" data-cmd="Áp dụng tone màu ấm hoàng hôn">🌅 Tone Màu Ấm (Warm Filter)</button>
+              <button class="btn-preset" data-cmd="Làm sắc nét từng chi tiết ảnh">🔍 Làm Nét (Unsharp Mask)</button>
+              <button class="btn-preset" data-cmd="Chuyển sang ảnh đen trắng tương phản cao">🖤 Đen Trắng Cổ Điển</button>
+              <button class="btn-preset" data-cmd="Làm mờ xóa phông">🌫️ Xóa Phông Mờ Ảo</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="copilotInput">Yêu cầu trợ lý AI:</label>
+            <div class="chat-input-row">
+              <input type="text" id="copilotInput" placeholder="Ví dụ: Làm ảnh sáng hơn, tăng màu ấm và làm nét chi tiết..." />
+              <button class="btn btn-primary" id="btnCopilotSend">Gửi</button>
+            </div>
+          </div>
+
+          <div class="copilot-log" id="copilotLog">
+            <div class="log-item info">✨ Sẵn sàng nhận lệnh điều khiển PhotoCraft.</div>
+          </div>
+        </div>
+
+        <!-- Tab 6: Settings -->
+        <div class="tab-content" id="tab-settings">
+          <div class="tab-header">
+            <h3>Cài Đặt AI & Mô Hình</h3>
+            <p class="tab-desc">Tùy chỉnh model sinh ảnh và cấu hình API cá nhân.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="selDashboardProvider">Nhà cung cấp AI:</label>
+            <select id="selDashboardProvider" class="form-select">
+              <option value="omnirouter">🚀 OmniRouter Hệ Thống (SPLSEO 139.99.89.215)</option>
+              <option value="openrouter">🌐 OpenRouter Official (openrouter.ai)</option>
+              <option value="gemini">💎 Google Gemini (Đã có Key SPLSEO)</option>
+              <option value="pollinations">🎁 Pollinations FLUX (Miễn phí 100% - Không cần key)</option>
+              <option value="custom">🛠️ Custom Router / OpenAI Proxy</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="grpDashBaseUrl">
+            <label for="txtDashBaseUrl">API Base URL:</label>
+            <input type="text" id="txtDashBaseUrl" placeholder="http://139.99.89.215:20128/v1" />
+          </div>
+
+          <div class="form-group">
+            <label for="txtDashImageModel">Mô hình tạo ảnh (Image Model):</label>
+            <input type="text" id="txtDashImageModel" placeholder="nvidia/black-forest-labs/flux.1-schnell" />
+          </div>
+
+          <div class="form-group">
+            <label>Danh sách API Keys xoay tua (Round-Robin):</label>
+            <div id="dashKeyList" style="display:flex; flex-direction:column; gap:6px; max-height:140px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid #3f3f46; font-size:12px;"></div>
+            
+            <textarea id="txtDashNewKeys" rows="2" style="margin-top:8px; width:100%; box-sizing:border-box; background:rgba(0,0,0,0.3); border:1px solid #3f3f46; color:#fff; border-radius:6px; padding:6px 10px; font-size:12px;" placeholder="Dán các API Keys vào đây (mỗi key 1 dòng)..."></textarea>
+            <button class="btn btn-secondary btn-sm w-100 mt-1" id="btnAddDashKeys">+ Thêm Keys Vào Danh Sách Xoay</button>
+          </div>
+
+          <button class="btn btn-primary w-100" id="btnSaveSettings">
+            <span>💾 Lưu Cài Đặt AI Router</span>
+          </button>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Dialog for New Document -->
+    <div class="modal hidden" id="newDocModal">
+      <div class="modal-card">
+        <h3>Tạo Tài Liệu Mới</h3>
+        <div class="form-group">
+          <label>Tên tài liệu:</label>
+          <input type="text" id="newDocName" value="Artwork_01" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Chiều rộng (px):</label>
+            <input type="number" id="newDocW" value="1024" />
+          </div>
+          <div class="form-group">
+            <label>Chiều cao (px):</label>
+            <input type="number" id="newDocH" value="768" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Màu nền:</label>
+          <select id="newDocBg" class="form-select">
+            <option value="#ffffff">Trắng (#ffffff)</option>
+            <option value="#1e1e24">Đen tối (#1e1e24)</option>
+            <option value="transparent">Trong suốt</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="btnCancelNewDoc">Hủy</button>
+          <button class="btn btn-primary" id="btnConfirmNewDoc">Tạo Ngay</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "photocraft": {
+      "command": "./release-bin/photocraft-0.9.0-windows-x64-portable/photocraft-cli.exe",
+      "args": [
+        "mcp",
+        "--automation-read-root",
+        "./ptscraft-ai/workspace",
+        "--automation-write-root",
+        "./ptscraft-ai/workspace"
+      ]
+    }
+  }
+}

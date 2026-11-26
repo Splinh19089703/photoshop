@@ -1,0 +1,19 @@
+{
+  "name": "ptscraft-ai",
+  "version": "1.0.0",
+  "description": "AI Companion & Generative Features Suite for PhotoCraft",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "photocraft",
+    "photoshop",
+    "generative-fill",
+    "ai",
+    "inpainting",
+    "mcp"
+  ],
+  "author": "SPLWorks",
+  "license": "MIT"
+}

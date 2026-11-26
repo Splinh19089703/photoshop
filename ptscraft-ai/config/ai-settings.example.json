@@ -1,0 +1,45 @@
+{
+  "activeProvider": "pollinations",
+  "fallbackOrder": [
+    "omnirouter",
+    "openrouter",
+    "gemini",
+    "pollinations"
+  ],
+  "providers": {
+    "omnirouter": {
+      "name": "OmniRouter (SPLSEO Engine)",
+      "baseUrl": "http://139.99.89.215:20128/v1",
+      "model": "spl",
+      "imageModel": "nvidia/black-forest-labs/flux.1-schnell",
+      "keys": []
+    },
+    "openrouter": {
+      "name": "OpenRouter (openrouter.ai)",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "model": "black-forest-labs/flux-schnell",
+      "imageModel": "black-forest-labs/flux-schnell",
+      "keys": []
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "model": "gemini-2.5-flash",
+      "imageModel": "gemini-2.5-flash-image",
+      "keys": []
+    },
+    "custom": {
+      "name": "Custom OpenAI-Compatible / Local Router",
+      "baseUrl": "http://localhost:11434/v1",
+      "model": "dall-e-3",
+      "imageModel": "dall-e-3",
+      "keys": []
+    },
+    "pollinations": {
+      "name": "Pollinations FLUX (Free Fallback)",
+      "model": "flux",
+      "imageModel": "flux",
+      "keys": []
+    }
+  }
+}
